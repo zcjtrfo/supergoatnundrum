@@ -125,11 +125,6 @@ def render_word_tiles(word):
 
 
 st.set_page_config(page_title="Supernundrum", page_icon="?", layout="centered")
-st.title("Supernundrum")
-st.write(
-	"Unscramble the nine words. Their starting letters spell the original "
-	"nine-letter word."
-)
 st.markdown(
 	"""
 	<style>
@@ -169,34 +164,41 @@ st.markdown(
 )
 
 entries = load_lexicon()
-st.caption(f"Loaded {len(entries):,} nine-letter words")
+left_column, right_column = st.columns(2, gap="large")
 
-maximum_difficulty = st.slider(
-	"Maximum difficulty",
-	min_value=1,
-	max_value=4,
-	value=2,
-	help="The original word can have any difficulty from 1 up to this value.",
-)
+with left_column:
+	st.title("Supernundrum")
+	st.write(
+		"Unscramble the nine words. Their starting letters spell the original "
+		"nine-letter word."
+	)
+	st.caption(f"Loaded {len(entries):,} nine-letter words")
 
-if st.button("Generate Supernundrum", type="primary", use_container_width=True):
-	try:
-		st.session_state.puzzle = generate_puzzle(entries, maximum_difficulty)
-		st.session_state.revealed = False
-	except ValueError as error:
-		st.error(str(error))
+	maximum_difficulty = st.slider(
+		"Maximum difficulty",
+		min_value=1,
+		max_value=4,
+		value=2,
+		help="The original word and subwords can have difficulty from 1 up to this value.",
+	)
+
+	if st.button("Generate Supernundrum", type="primary", use_container_width=True):
+		try:
+			st.session_state.puzzle = generate_puzzle(entries, maximum_difficulty)
+			st.session_state.revealed = False
+		except ValueError as error:
+			st.error(str(error))
 
 puzzle = st.session_state.get("puzzle")
 if puzzle:
-	st.divider()
-	st.subheader("Your words")
-	for item in puzzle["items"]:
-		displayed_word = item["word"] if st.session_state.get("revealed") else item["scrambled"]
-		render_word_tiles(displayed_word)
+	with right_column:
+		for item in puzzle["items"]:
+			displayed_word = item["word"] if st.session_state.get("revealed") else item["scrambled"]
+			render_word_tiles(displayed_word)
 
-	if not st.session_state.get("revealed"):
-		if st.button("Reveal Solution", use_container_width=True):
-			st.session_state.revealed = True
-			st.rerun()
-	else:
-		st.success(f"Original chosen word: **{puzzle['solution']}**")
+		if not st.session_state.get("revealed"):
+			if st.button("Reveal Solution", use_container_width=True):
+				st.session_state.revealed = True
+				st.rerun()
+		else:
+			st.success(f"Original chosen word: **{puzzle['solution']}**")
