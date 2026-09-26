@@ -24,10 +24,11 @@ def load_lexicon():
 	return entries
 
 
-def build_index(words):
+def build_index(entries, maximum_difficulty):
 	words_by_initial = defaultdict(list)
-	for word in words:
-		words_by_initial[word[0]].append(word)
+	for word, difficulty in entries.items():
+		if 1 <= difficulty <= maximum_difficulty:
+			words_by_initial[word[0]].append(word)
 	return words_by_initial
 
 
@@ -90,7 +91,7 @@ def generate_puzzle(entries, maximum_difficulty):
 	if not eligible_solutions:
 		raise ValueError("No eligible solution words were found.")
 
-	words_by_initial = build_index(entries)
+	words_by_initial = build_index(entries, maximum_difficulty)
 	random.shuffle(eligible_solutions)
 	for solution in eligible_solutions:
 		try:
@@ -112,11 +113,59 @@ def generate_puzzle(entries, maximum_difficulty):
 	raise ValueError("Could not build a puzzle from the available lexicon.")
 
 
+def render_word_tiles(word):
+	tiles = "".join(
+		f'<span class="supernundrum-tile">{letter}</span>'
+		for letter in word
+	)
+	st.markdown(
+		f'<div class="supernundrum-word" aria-label="{word}">{tiles}</div>',
+		unsafe_allow_html=True,
+	)
+
+
 st.set_page_config(page_title="Supernundrum", page_icon="?", layout="centered")
 st.title("Supernundrum")
 st.write(
 	"Unscramble the nine words. Their starting letters spell the original "
 	"nine-letter word."
+)
+st.markdown(
+	"""
+	<style>
+	.supernundrum-word {
+		display: flex;
+		justify-content: center;
+		gap: 0.2rem;
+		margin: 0.9rem 0;
+		width: 100%;
+	}
+	.supernundrum-tile {
+		align-items: center;
+		background: #55acd8;
+		border: 2px solid #2f8dbd;
+		border-radius: 3px;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 3px rgba(20, 75, 105, 0.2);
+		color: white;
+		display: inline-flex;
+		font-family: "Trebuchet MS", sans-serif;
+		font-size: 1.65rem;
+		font-weight: 700;
+		height: 2.55rem;
+		justify-content: center;
+		line-height: 1;
+		width: 2.35rem;
+	}
+	@media (max-width: 480px) {
+		.supernundrum-tile {
+			font-size: 1.25rem;
+			height: 2.1rem;
+			width: 1.82rem;
+		}
+	}
+	</style>
+	""",
+	unsafe_allow_html=True,
 )
 
 entries = load_lexicon()
@@ -143,7 +192,7 @@ if puzzle:
 	st.subheader("Your words")
 	for item in puzzle["items"]:
 		displayed_word = item["word"] if st.session_state.get("revealed") else item["scrambled"]
-		st.markdown(f"### {displayed_word}")
+		render_word_tiles(displayed_word)
 
 	if not st.session_state.get("revealed"):
 		if st.button("Reveal Solution", use_container_width=True):
