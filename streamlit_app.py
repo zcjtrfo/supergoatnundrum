@@ -73,6 +73,25 @@ def choose_words(solution, words_by_initial):
 	return selected
 
 
+def build_completion_index(entries):
+	completions = defaultdict(set)
+	for word in entries:
+		for position in range(len(word)):
+			visible_letters = word[:position] + word[position + 1:]
+			completions["".join(sorted(visible_letters))].add(word)
+	return completions
+
+
+def valid_drop_positions(word, completion_index):
+	valid_positions = []
+	for position in range(len(word)):
+		visible_letters = word[:position] + word[position + 1:]
+		completion_words = completion_index["".join(sorted(visible_letters))]
+		if completion_words == {word}:
+			valid_positions.append(position)
+	return valid_positions
+
+
 def jumble(word):
 	letters = list(word)
 	random.shuffle(letters)
@@ -83,7 +102,15 @@ def jumble(word):
 	return scrambled
 
 
-def generate_puzzle(entries, maximum_difficulty):
+def goatdown_scramble(word, dropped_position):
+	remaining_letters = list(word[:dropped_position] + word[dropped_position + 1:])
+	random.shuffle(remaining_letters)
+	blank_position = random.randrange(len(word))
+	remaining_letters.insert(blank_position, " ")
+	return "".join(remaining_letters)
+
+
+def generate_puzzle(entries, maximum_difficulty, goatdown=False):
 	eligible_solutions = [
 		word for word, difficulty in entries.items()
 		if 1 <= difficulty <= maximum_difficulty
@@ -92,6 +119,7 @@ def generate_puzzle(entries, maximum_difficulty):
 		raise ValueError("No eligible solution words were found.")
 
 	words_by_initial = build_index(entries, maximum_difficulty)
+	completion_index = build_completion_index(entries) if goatdown else None
 	random.shuffle(eligible_solutions)
 	for solution in eligible_solutions:
 		try:
@@ -99,14 +127,28 @@ def generate_puzzle(entries, maximum_difficulty):
 		except ValueError:
 			continue
 
-		items = [
-			{
-				"letter": letter,
-				"word": word,
-				"scrambled": jumble(word),
-			}
-			for letter, word in zip(solution, selected_words)
-		]
+		items = []
+		valid_goatdown = True
+		for letter, word in zip(solution, selected_words):
+			if goatdown:
+				valid_positions = valid_drop_positions(word, completion_index)
+				if not valid_positions:
+					valid_goatdown = False
+					break
+				dropped_position = random.choice(valid_positions)
+				scrambled = goatdown_scramble(word, dropped_position)
+			else:
+				scrambled = jumble(word)
+			items.append(
+				{
+					"letter": letter,
+					"word": word,
+					"scrambled": scrambled,
+				}
+			)
+
+		if not valid_goatdown:
+			continue
 		random.shuffle(items)
 		return {"solution": solution, "items": items}
 
@@ -115,7 +157,8 @@ def generate_puzzle(entries, maximum_difficulty):
 
 def render_word_tiles(word):
 	tiles = "".join(
-		f'<span class="supernundrum-tile">{letter}</span>'
+		f'<span class="supernundrum-tile{ " supernundrum-blank" if letter == " " else "" }">'
+		f'{"&nbsp;" if letter == " " else letter}</span>'
 		for letter in word
 	)
 	st.markdown(
@@ -151,6 +194,11 @@ st.markdown(
 		line-height: 1;
 		width: 2.35rem;
 	}
+	.supernundrum-blank {
+		background: #dceef6;
+		border-color: #55acd8;
+		box-shadow: inset 0 1px 2px rgba(20, 75, 105, 0.2);
+	}
 	@media (max-width: 480px) {
 		.supernundrum-tile {
 			font-size: 1.25rem;
@@ -168,9 +216,14 @@ left_column, right_column = st.columns(2, gap="large")
 
 with left_column:
 	st.title("Supernundrum")
+	goatdown = st.toggle(
+		"Goatdown mode",
+		help="Show each subword with one letter missing. Every missing letter must have a unique solution in the full lexicon.",
+	)
 	st.write(
-		"Unscramble the nine words. Their starting letters spell the original "
-		"nine-letter word."
+		"In Goatdown mode, solve eight words with one letter missing. In Normal "
+		"mode, unscramble nine complete words. Their starting letters spell the "
+		"original nine-letter word."
 	)
 	st.caption(f"Loaded {len(entries):,} nine-letter words")
 
@@ -184,7 +237,11 @@ with left_column:
 
 	if st.button("Generate Supernundrum", type="primary", use_container_width=True):
 		try:
-			st.session_state.puzzle = generate_puzzle(entries, maximum_difficulty)
+			st.session_state.puzzle = generate_puzzle(
+				entries,
+				maximum_difficulty,
+				goatdown=goatdown,
+			)
 			st.session_state.revealed = False
 		except ValueError as error:
 			st.error(str(error))
