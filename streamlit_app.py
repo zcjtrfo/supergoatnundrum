@@ -270,9 +270,6 @@ with left_column:
 				st.rerun()
 			st.session_state.guess_result = "incorrect"
 
-		if st.session_state.get("guess_result") == "incorrect":
-			st.error("Incorrect")
-
 puzzle = st.session_state.get("puzzle")
 if puzzle:
 	with right_column:
@@ -285,3 +282,5 @@ if puzzle:
 
 		if st.session_state.get("revealed"):
 			st.success(f"Solution: **{puzzle['solution']}**")
+		elif st.session_state.get("guess_result") == "incorrect":
+			st.error("Incorrect")
