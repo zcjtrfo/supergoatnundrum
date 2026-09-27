@@ -256,8 +256,13 @@ with left_column:
 			st.session_state.revealed = True
 			st.rerun()
 
-		st.text_input("Enter final solution", max_chars=9, key="final_solution_guess")
-		if st.button("Submit Solution", use_container_width=True):
+		with st.form("solution_form"):
+			st.text_input("Enter solution", max_chars=9, key="final_solution_guess")
+			solution_submitted = st.form_submit_button(
+				"Submit Solution",
+				use_container_width=True,
+			)
+		if solution_submitted:
 			guess = st.session_state.final_solution_guess.strip().upper()
 			if guess == puzzle["solution"]:
 				st.session_state.revealed = True
@@ -266,7 +271,7 @@ with left_column:
 			st.session_state.guess_result = "incorrect"
 
 		if st.session_state.get("guess_result") == "incorrect":
-			st.write("Incorrect")
+			st.error("Incorrect")
 
 puzzle = st.session_state.get("puzzle")
 if puzzle:
