@@ -175,13 +175,14 @@ st.markdown(
 	"""
 	<style>
 	[data-testid="stAppViewContainer"] .block-container {
-		padding-top: 1rem;
+		padding-top: 2rem;
 	}
 	.supernundrum-word {
 		display: flex;
 		justify-content: center;
 		gap: 0.2rem;
-		margin: 0.9rem 0;
+		margin: 0.35rem 0;
+		padding-top: 0.2rem;
 		width: 100%;
 	}
 	.supernundrum-tile {
@@ -247,6 +248,12 @@ with left_column:
 		except ValueError as error:
 			st.error(str(error))
 
+	puzzle = st.session_state.get("puzzle")
+	if puzzle and not st.session_state.get("revealed"):
+		if st.button("Reveal Solution", use_container_width=True):
+			st.session_state.revealed = True
+			st.rerun()
+
 puzzle = st.session_state.get("puzzle")
 if puzzle:
 	with right_column:
@@ -257,9 +264,5 @@ if puzzle:
 				highlight_first=st.session_state.get("revealed", False),
 			)
 
-		if not st.session_state.get("revealed"):
-			if st.button("Reveal Solution", use_container_width=True):
-				st.session_state.revealed = True
-				st.rerun()
-		else:
+		if st.session_state.get("revealed"):
 			st.success(f"Solution: **{puzzle['solution']}**")
