@@ -175,7 +175,7 @@ st.markdown(
 	"""
 	<style>
 	[data-testid="stAppViewContainer"] .block-container {
-		padding-top: 2rem;
+		padding-top: 2.5rem;
 	}
 	.supernundrum-word {
 		display: flex;
