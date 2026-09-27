@@ -248,6 +248,7 @@ with left_column:
 				maximum_difficulty,
 				goatdown=goatdown,
 			)
+			st.rerun()
 		except ValueError as error:
 			st.error(str(error))
 
