@@ -24,10 +24,10 @@ def load_lexicon():
 	return entries
 
 
-def build_index(entries, maximum_difficulty):
+def build_index(entries, minimum_difficulty, maximum_difficulty):
 	words_by_initial = defaultdict(list)
 	for word, difficulty in entries.items():
-		if 1 <= difficulty <= maximum_difficulty:
+		if minimum_difficulty <= difficulty <= maximum_difficulty:
 			words_by_initial[word[0]].append(word)
 	return words_by_initial
 
@@ -105,20 +105,23 @@ def jumble(word):
 def goatdown_scramble(word, dropped_position):
 	remaining_letters = list(word[:dropped_position] + word[dropped_position + 1:])
 	random.shuffle(remaining_letters)
-	blank_position = random.randrange(len(word))
-	remaining_letters.insert(blank_position, " ")
+	remaining_letters.append(" ")
 	return "".join(remaining_letters)
 
 
-def generate_puzzle(entries, maximum_difficulty, goatdown=False):
+def generate_puzzle(entries, minimum_difficulty, maximum_difficulty, goatdown=False):
 	eligible_solutions = [
 		word for word, difficulty in entries.items()
-		if 1 <= difficulty <= maximum_difficulty
+		if minimum_difficulty <= difficulty <= maximum_difficulty
 	]
 	if not eligible_solutions:
 		raise ValueError("No eligible solution words were found.")
 
-	words_by_initial = build_index(entries, maximum_difficulty)
+	words_by_initial = build_index(
+		entries,
+		minimum_difficulty,
+		maximum_difficulty,
+	)
 	completion_index = build_completion_index(entries) if goatdown else None
 	random.shuffle(eligible_solutions)
 	for solution in eligible_solutions:
@@ -155,11 +158,11 @@ def generate_puzzle(entries, maximum_difficulty, goatdown=False):
 	raise ValueError("Could not build a puzzle from the available lexicon.")
 
 
-def render_word_tiles(word):
+def render_word_tiles(word, highlight_first=False):
 	tiles = "".join(
-		f'<span class="supernundrum-tile{ " supernundrum-blank" if letter == " " else "" }">'
+		f'<span class="supernundrum-tile{ " supernundrum-initial" if highlight_first and position == 0 else "" }">'
 		f'{"&nbsp;" if letter == " " else letter}</span>'
-		for letter in word
+		for position, letter in enumerate(word)
 	)
 	st.markdown(
 		f'<div class="supernundrum-word" aria-label="{word}">{tiles}</div>',
@@ -171,6 +174,9 @@ st.set_page_config(page_title="Supernundrum", page_icon="?", layout="centered")
 st.markdown(
 	"""
 	<style>
+	[data-testid="stAppViewContainer"] .block-container {
+		padding-top: 1rem;
+	}
 	.supernundrum-word {
 		display: flex;
 		justify-content: center;
@@ -194,10 +200,9 @@ st.markdown(
 		line-height: 1;
 		width: 2.35rem;
 	}
-	.supernundrum-blank {
-		background: #dceef6;
-		border-color: #55acd8;
-		box-shadow: inset 0 1px 2px rgba(20, 75, 105, 0.2);
+	.supernundrum-initial {
+		background: #1976a8;
+		border-color: #125b81;
 	}
 	@media (max-width: 480px) {
 		.supernundrum-tile {
@@ -218,27 +223,23 @@ with left_column:
 	st.title("Supernundrum")
 	goatdown = st.toggle(
 		"Goatdown mode",
-		help="Show each subword with one letter missing. Every missing letter must have a unique solution in the full lexicon.",
-	)
-	st.write(
-		"In Goatdown mode, solve eight words with one letter missing. In Normal "
-		"mode, unscramble nine complete words. Their starting letters spell the "
-		"original nine-letter word."
 	)
 	st.caption(f"Loaded {len(entries):,} nine-letter words")
 
-	maximum_difficulty = st.slider(
-		"Maximum difficulty",
-		min_value=1,
-		max_value=4,
-		value=2,
-		help="The original word and subwords can have difficulty from 1 up to this value.",
+	difficulty_labels = ["Easy", "Medium", "Hard", "Very Hard"]
+	minimum_label, maximum_label = st.select_slider(
+		"Difficulty range",
+		options=difficulty_labels,
+		value=("Easy", "Medium"),
 	)
+	minimum_difficulty = difficulty_labels.index(minimum_label) + 1
+	maximum_difficulty = difficulty_labels.index(maximum_label) + 1
 
 	if st.button("Generate Supernundrum", type="primary", use_container_width=True):
 		try:
 			st.session_state.puzzle = generate_puzzle(
 				entries,
+				minimum_difficulty,
 				maximum_difficulty,
 				goatdown=goatdown,
 			)
@@ -251,11 +252,14 @@ if puzzle:
 	with right_column:
 		for item in puzzle["items"]:
 			displayed_word = item["word"] if st.session_state.get("revealed") else item["scrambled"]
-			render_word_tiles(displayed_word)
+			render_word_tiles(
+				displayed_word,
+				highlight_first=st.session_state.get("revealed", False),
+			)
 
 		if not st.session_state.get("revealed"):
 			if st.button("Reveal Solution", use_container_width=True):
 				st.session_state.revealed = True
 				st.rerun()
 		else:
-			st.success(f"Original chosen word: **{puzzle['solution']}**")
+			st.success(f"Solution: **{puzzle['solution']}**")
