@@ -245,6 +245,8 @@ with left_column:
 				goatdown=goatdown,
 			)
 			st.session_state.revealed = False
+			st.session_state.guess_result = None
+			st.session_state.final_solution_guess = ""
 		except ValueError as error:
 			st.error(str(error))
 
@@ -253,6 +255,18 @@ with left_column:
 		if st.button("Reveal Solution", use_container_width=True):
 			st.session_state.revealed = True
 			st.rerun()
+
+		st.text_input("Enter final solution", max_chars=9, key="final_solution_guess")
+		if st.button("Submit Solution", use_container_width=True):
+			guess = st.session_state.final_solution_guess.strip().upper()
+			if guess == puzzle["solution"]:
+				st.session_state.revealed = True
+				st.session_state.guess_result = None
+				st.rerun()
+			st.session_state.guess_result = "incorrect"
+
+		if st.session_state.get("guess_result") == "incorrect":
+			st.write("Incorrect")
 
 puzzle = st.session_state.get("puzzle")
 if puzzle:
