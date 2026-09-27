@@ -237,6 +237,10 @@ with left_column:
 	maximum_difficulty = difficulty_labels.index(maximum_label) + 1
 
 	if st.button("Generate Supernundrum", type="primary", use_container_width=True):
+		st.session_state.puzzle = None
+		st.session_state.revealed = False
+		st.session_state.guess_result = None
+		st.session_state.final_solution_guess = ""
 		try:
 			st.session_state.puzzle = generate_puzzle(
 				entries,
@@ -244,9 +248,6 @@ with left_column:
 				maximum_difficulty,
 				goatdown=goatdown,
 			)
-			st.session_state.revealed = False
-			st.session_state.guess_result = None
-			st.session_state.final_solution_guess = ""
 		except ValueError as error:
 			st.error(str(error))
 
