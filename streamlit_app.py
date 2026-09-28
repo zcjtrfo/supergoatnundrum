@@ -282,7 +282,10 @@ if puzzle:
 				highlight_first=st.session_state.get("revealed", False),
 			)
 
+		feedback_placeholder = st.empty()
 		if st.session_state.get("revealed"):
-			st.success(f"Solution: **{puzzle['solution']}**")
+			feedback_placeholder.success(f"Solution: **{puzzle['solution']}**")
 		elif st.session_state.get("guess_result") == "incorrect":
-			st.error("Incorrect")
+			feedback_placeholder.error("Incorrect")
+		else:
+			feedback_placeholder.empty()
